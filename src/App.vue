@@ -270,9 +270,7 @@ async function buscarAleatorio() {
         </section>
       </main>
 
-      <footer class="footer">
-        <small>creado por: curiche2</small>
-      </footer>
+    
     </div>
   </div>
 </template>
