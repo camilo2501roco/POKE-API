@@ -8,163 +8,165 @@ const cargando = ref(false);
 const error = ref("");
 const debilidades = ref([]);
 
-const TYPE_COLORS = {
-  normal: "#A8A77A",
-  fire: "#EE8130",
-  water: "#6390F0",
-  electric: "#F7D02C",
-  grass: "#7AC74C",
-  ice: "#96D9D6",
-  fighting: "#C22E28",
-  poison: "#A33EA1",
-  ground: "#E2BF65",
-  flying: "#A98FF3",
-  psychic: "#F95587",
-  bug: "#A6B91A",
-  rock: "#B6A136",
-  ghost: "#735797",
-  dragon: "#6F35FC",
-  dark: "#705746",
-  steel: "#B7B7CE",
-  fairy: "#F7B9E3",
+
+
+const tiposColor ={
+
+  normal: '#A8A878',
+  fire: '#F08030',
+  water: '#6890F0',
+  electric: '#F8D030',
+  grass: '#78C850',
+  ice: '#98D8D8',
+  fighting: '#C03028',
+  poison: '#A040A0',
+  ground: '#E0C068',
+  flying: '#A890F0',
+  psychic: '#F85888',
+  bug: '#A8B820',
+  rock: '#B8A038',
+  ghost: '#705898',
+  dragon: '#7038F8',
+  dark: '#705848',
+  steel: '#B8B8D0',
+  fairy: '#EE99AC'
 };
 
-function shadeColor(hex, percent) {
-  const raw = (hex || "#dddddd").replace("#", "");
-  const num = parseInt(raw, 16);
-  let r = (num >> 16) + Math.round(2.55 * percent);
-  let g = ((num >> 8) & 0x00ff) + Math.round(2.55 * percent);
-  let b = (num & 0x0000ff) + Math.round(2.55 * percent);
-  r = Math.max(0, Math.min(255, r));
-  g = Math.max(0, Math.min(255, g));
-  b = Math.max(0, Math.min(255, b));
-  return "#" + ((r << 16) | (g << 8) | b).toString(16).padStart(6, "0");
-}
-function contrastText(hex) {
-  const raw = (hex || "#ffffff").replace("#", "");
-  const num = parseInt(raw, 16);
-  const r = num >> 16,
-    g = (num >> 8) & 0x00ff,
-    b = num & 0x0000ff;
-  const l = 0.299 * r + 0.587 * g + 0.114 * b;
-  return l > 140 ? "#222" : "#fff";
+
+const getGradianteColor = (types) =>{
+  if(!types || types.length ===0) return  'linear-gradient(to right , #666666,#888888)';
+
+
+  if(types.length === 1){
+    const color = tiposColor[types[0].type.name] || '#666666';
+    return `linear-gradient(to right, ${color}, ${adjustColor(color, -20)})`;
+  }
+
+  const color1= tiposColor[types[0].type.name] || '#666666';
+  const color2 = tiposColor[types[1].type.name] || '#888888';
+  return `linear-gradient(to right, ${color1} ,${color2})`;
 }
 
-async function buscarPokemon() {
+
+
+ const adjustColor= (color,amount) =>{
+   const hex = color.replace('#', '');
+  const r = Math.max(Math.min(parseInt(hex.substring(0,2), 16) + amount, 255), 0);
+  const g = Math.max(Math.min(parseInt(hex.substring(2,4), 16) + amount, 255), 0);
+  const b = Math.max(Math.min(parseInt(hex.substring(4,6), 16) + amount, 255), 0);
+
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+ };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const buscarPokemon = async () => {
   if (!pokemonID.value) {
-    error.value = "Por favor ingrese un nombre o ID";
+    error.value = "Por favor ingrese  un nombre o ID";
+
     return;
   }
+
   cargando.value = true;
   error.value = "";
   debilidades.value = [];
-  pokemonData.value = null;
+
   try {
-    const res = await axios.get(
+    const response = await axios.get(
       `https://pokeapi.co/api/v2/pokemon/${pokemonID.value.toLowerCase()}`
     );
-    pokemonData.value = res.data;
+
+    pokemonData.value = response.data;
+
     await obtenerDebilidades();
-  } catch (e) {
+
+    console.log(pokemonData);
+  } catch (err) {
     error.value =
-      e.response?.status === 404
-        ? "Pokémon no encontrado"
-        : "Error al conectar con la API";
+      err.response?.status === 404
+        ? "pokemon no encontrado"
+        : "error al conectar con la API";
     pokemonData.value = null;
   } finally {
     cargando.value = false;
   }
-}
-async function obtenerDebilidades() {
+};
+
+const obtenerDebilidades = async () => {
   try {
-    const promises = pokemonData.value.types.map((t) => axios.get(t.type.url));
-    const responses = await Promise.all(promises);
-    const all = responses.flatMap((r) =>
-      r.data.damage_relations.double_damage_from.map((d) => d.name)
+    const tiposPromesas = pokemonData.value.types.map((type) =>
+      axios.get(type.type.url)
     );
-    debilidades.value = Array.from(new Set(all));
-  } catch (e) {
-    console.error(e);
-    error.value = "Error al obtener debilidades";
+
+    const tiposResponses = await Promise.all(tiposPromesas);
+
+    const todasDebilidades = tiposResponses.flatMap((response) =>
+      response.data.damage_relations.double_damage_from.map((d) => d.name)
+    );
+
+    debilidades.value = [...new Set(todasDebilidades)];
+  } catch (err) {
+    console.error("error al obtener debilidades", err);
+    error.value = "error al obtener debilidades";
   }
+};
+
+
+
+function rnd(min,max){
+  return Math.floor(Math.random() *(max-min+1))+ min;
 }
 
-function getTypeCols() {
-  if (!pokemonData.value || !pokemonData.value.types)
-    return ["#f3f3f3", "#f3f3f3"];
-  const types = pokemonData.value.types.map((t) => t.type.name);
-  const cols = types.map((t) => TYPE_COLORS[t] || "#ddd");
-  if (cols.length === 1) return [cols[0], shadeColor(cols[0], -12)];
-  return [cols[0], cols[1] || cols[0]];
-}
-function centerStyle() {
-  const [c1, c2] = getTypeCols();
-  return {
-    background: `linear-gradient(180deg, ${c1} 0%, ${c2} 100%)`,
-    color: contrastText(getTypeCols()[0]),
-  };
-}
-function statFillColor() {
-  return getTypeCols()[0] || "#d2b04a";
-}
-function weaknessColor(t) {
-  return TYPE_COLORS[t] || "#ddd";
-}
-function enrichedStats() {
-  if (!pokemonData.value) return [];
-  return pokemonData.value.stats.map((s) => {
-    const v = s.base_stat;
-    const pct = Math.round((v / 255) * 100);
-    let level = "low";
-    if (v >= 170) level = "high";
-    else if (v >= 85) level = "medium";
-    return { name: s.stat.name.replace("-", " "), value: v, pct, level };
-  });
-}
-
-function rnd(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-async function buscarAleatorio() {
-  pokemonID.value = String(rnd(1, 1010));
+async function buscarAleatorio(){
+  pokemonID.value = String(rnd(1,1010));
   await buscarPokemon();
 }
+
+
 </script>
 
 <template>
-  <div class="app">
-    <!-- fondo principal: degradado global -->
-    <div class="page-gradient"></div>
+  <div class="container">
+    <header>
+      <div class="lupa">
+        <label for="pokemonInput">
+          <input v-model="pokemonID" type="text" id="pokemonInput" />
+        </label>
+        <button class="boton" type="button" @click="buscarPokemon">
+          Buscar
+        </button>
+        <button class="boton-aleatorio" type="button" @click="buscarAleatorio" :disabled="cargando">
+          aleatorio
+        </button>
+      </div>
+    </header>
 
-    <div class="ui">
-      <header class="topbar">
-        <div class="controls">
-          <input
-            v-model="pokemonID"
-            @keyup.enter="buscarPokemon"
-            placeholder="nombre o ID"
-          />
-          <button @click="buscarPokemon" :disabled="cargando">
-            {{ cargando ? "Buscando..." : "Buscar" }}
-          </button>
-          <button class="rnd" @click="buscarAleatorio" :disabled="cargando">
-            Aleatorio
-          </button>
-        </div>
-        <div class="title">PokeFicha</div>
-      </header>
-
-      <main class="main-layout">
-        <aside class="left-card" :style="centerStyle()">
-          <div class="left-top">
+    <main class="main" v-if="pokemonData">
+      <div class="content-wrapper">
+        <!-- Columna izquierda -->
+        <div class="left-column" 
+          :style="{ 
+            '--pokemon-gradient': getGradianteColor(pokemonData.types),
+            background: 'var(--pokemon-gradient)',
+            transition: 'background 0.3s ease'
+          }"
+        >
+          <section class="Pokemon-presentacion">
             <div class="img-wrapper">
               <img
-                :src="
-                  pokemonData?.sprites?.other?.['official-artwork']
-                    ?.front_default ||
-                  pokemonData?.sprites?.front_default ||
-                  pokemonData?.sprites?.front_shiny_female
-                "
+                :src="pokemonData?.sprites?.other?.['official-artwork']?.front_default"
                 :alt="pokemonData?.name || 'pokemon'"
                 class="main-image"
                 v-if="pokemonData"
@@ -172,370 +174,473 @@ async function buscarAleatorio() {
               />
               <div v-else class="placeholder">?</div>
             </div>
-          </div>
+            <h2>{{ pokemonData.name }}</h2>
+          </section>
 
-          <div class="left-body">
-            <h2 class="name">{{ pokemonData?.name || "---" }}</h2>
-            <div class="id">#{{ pokemonData?.id || "--" }}</div>
-
-            <div class="meta">
-              <div class="meta-item">
-                Alt:
-                {{
-                  pokemonData
-                    ? (pokemonData.height / 10).toFixed(1) + " m"
-                    : "--"
-                }}
-              </div>
-              <div class="meta-item">
-                Peso:
-                {{
-                  pokemonData
-                    ? (pokemonData.weight / 10).toFixed(0) + " kg"
-                    : "--"
-                }}
-              </div>
+          <div class="informacion-pokemon">
+            <h2>ID:{{ pokemonData.id }}</h2>
+            <div class="peso-altura">
+              <h3>peso :{{ pokemonData.weight / 10 }} kg</h3>
+              <h3>altura :{{ pokemonData.height / 10 }} m</h3>
             </div>
 
-            <div class="types-area">
-              <h3>Tipos</h3>
-              <div class="types">
-                <span
-                  v-for="t in pokemonData?.types || []"
-                  :key="t.slot"
-                  class="type"
-                  :style="{
-                    background: TYPE_COLORS[t.type.name] || '#eee',
-                    color: contrastText(TYPE_COLORS[t.type.name] || '#eee'),
-                  }"
-                  >{{ t.type.name }}</span
-                >
-              </div>
+            <div class="tipos">
+              <h2>Tipos:</h2>
+              <ul>
+                <li v-for="type in pokemonData.types" :key="type.slot" 
+                :style="{ backgroundColor: tiposColor[type.type.name] }">
+                  {{ type.type.name }}
+                </li>
+              </ul>
             </div>
 
-            <div class="weak-area">
-              <h3>Debilidades</h3>
-              <div class="weak-list">
-                <span v-if="debilidades.length === 0" class="weak-empty"
-                  >— —</span
-                >
-                <span
-                  v-for="w in debilidades"
-                  :key="w"
-                  class="weak"
-                  :style="{
-                    background: weaknessColor(w),
-                    color: contrastText(weaknessColor(w)),
-                  }"
-                  >{{ w }}</span
-                >
-              </div>
+            <div class="debilidades" v-if="debilidades.length > 0">
+              <h2>Debilidades:</h2>
+              <ul>
+                <li v-for="debilidad in debilidades" :key="debilidad" 
+                 :style="{ backgroundColor: tiposColor[debilidad] }">
+                  {{ debilidad }}
+                </li>
+              </ul>
             </div>
           </div>
+        </div>
 
-          <div
-            class="left-border"
-            :style="{
-              borderColor: shadeColor(getTypeCols()[0] || '#ddd', -30),
-            }"
-          ></div>
-        </aside>
-
-        <section class="right-panel">
-          <div class="stats-card">
-            <h2>Estadísticas</h2>
-            <div v-if="pokemonData" class="stats-list">
-              <div v-for="s in enrichedStats()" :key="s.name" class="stat-row">
-                <div class="stat-head">
-                  <span class="sname">{{ s.name }}</span>
-                  <span class="sval">{{ s.value }} / 255</span>
+        <!-- Columna derecha - Estadísticas -->
+        <div class="right-column">
+          <div class="estadisticas">
+            <h2>Estadísticas:</h2>
+            <div class="stats-container">
+              <div
+                v-for="stat in pokemonData.stats"
+                :key="stat.stat.name"
+                class="stat-item"
+              >
+                <div class="stat-header">
+                  <span class="stat-name">{{ stat.stat.name }}:</span>
+                  <span class="stat-value">{{ stat.base_stat }}</span>
                 </div>
-                <div class="bar">
+                <div class="stat-bar">
                   <div
-                    class="fill"
-                    :class="s.level"
-                    :style="{
-                      width: s.pct + '%',
-                      background: `linear-gradient(90deg, ${statFillColor()} 0%, ${shadeColor(
-                        statFillColor(),
-                        20
-                      )} 100%)`,
+                    class="stat-fill"
+                    :style="{ 
+                      width: `${(stat.base_stat / 255) * 100}%`,
+                      background: getGradianteColor(pokemonData.types)
                     }"
                   ></div>
                 </div>
               </div>
             </div>
-            <div v-else class="no-p">Busca un Pokémon</div>
           </div>
-        </section>
-      </main>
-
-    
-    </div>
+        </div>
+      </div>
+    </main>
   </div>
 </template>
 
 <style scoped>
-.app {
-  position: relative;
-  min-height: 100vh;
-  font-family: Inter, system-ui, Arial;
-  color: #222;
-}
 
-.page-gradient {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  background: linear-gradient(135deg, #cdeffd 0%, #f7f4d8 45%, #ffd6d6 100%);
-  filter: saturate(1.02);
+.container {
+  max-width: 1000px; 
+  margin: 0 auto;
+  padding: 1rem;
 }
-
-.ui {
-  position: relative;
-  z-index: 2;
+.content-wrapper{
+  display: flex;
+  gap:1rem;
+  align-items: flex-start;
+  justify-content: center;
+  margin: 0 auto;
   max-width: 1200px;
-  margin: 36px auto;
-  padding: 20px;
-  box-sizing: border-box;
 }
 
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.title {
-  font-weight: 800;
-  font-size: 20px;
-  color: rgba(0, 0, 0, 0.75);
-}
-.controls {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.controls input {
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  min-width: 160px;
-}
-.controls button {
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 0;
-  background: #2b6b4a;
-  color: #fff;
-  cursor: pointer;
-  font-weight: 600;
-}
-.controls .rnd {
-  background: #3a6fa6;
+
+
+
+.right-column{
+  width: 450px;
+  flex-shrink: 0;
+  height: 50px;
 }
 
-.main-layout {
-  display: grid;
-  grid-template-columns: 380px 1fr;
-  gap: 22px;
-  align-items: start;
-}
 
-.left-card {
-  position: relative;
-  border-radius: 18px;
-  padding: 18px;
-  box-shadow: 0 12px 30px rgba(18, 18, 18, 0.07);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 520px;
-  overflow: hidden;
-}
-
-.left-border {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  background: transparent;
-  border-left: 8px solid #000;
-  border-radius: 8px 0 0 8px;
-  pointer-events: none;
-}
-
-.img-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.estadisticas{
+    background: rgba(255, 255, 255, 0.95);
+  border-radius: 14px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
-}
-.main-image {
-  width: 220px;
-  height: 220px;
-  object-fit: contain;
-  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.14));
-  transition: transform 0.28s;
-}
-.main-image:hover {
-  transform: translateY(-8px);
-}
-
-.left-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  text-align: center;
-  color: inherit;
-}
-.name {
-  text-transform: capitalize;
-  font-size: 22px;
-  font-weight: 800;
-  margin: 0;
-}
-.id {
-  font-weight: 700;
-  color: rgba(0, 0, 0, 0.12);
-}
-.meta {
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-  margin-top: 6px;
-  color: rgba(255, 255, 255, 0.95);
-  font-weight: 700;
-}
-.meta-item {
-  background: rgba(255, 255, 255, 0.08);
-  padding: 6px 10px;
-  border-radius: 8px;
-  color: inherit;
-}
-
-.types-area,
-.weak-area {
-  margin-top: 10px;
-  text-align: left;
-  padding: 0 8px;
-}
-.types-area h3,
-.weak-area h3 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.95);
-}
-.types {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.type {
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-weight: 700;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
-  text-transform: uppercase;
-  font-size: 13px;
-}
-
-.weak-list {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.weak {
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-weight: 800;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
-  text-transform: uppercase;
-  font-size: 12px;
-}
-.weak-empty {
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.right-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.stats-card {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 14px;
-  padding: 18px;
   box-shadow: 0 12px 30px rgba(19, 19, 19, 0.06);
 }
-.stats-card h2 {
-  margin: 0 0 12px 0;
-  color: #222;
-}
-.stats-list {
+
+
+.stats-container{
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 1rem;
+    background: rgba(255, 255, 255, 0.95);
 }
-.stat-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+
+.stat-item{
+  margin: 0.5rem 0;
 }
-.stat-head {
+
+
+.stat-header{
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 0.3rem;
+
 }
-.sname {
-  text-transform: capitalize;
-  font-weight: 700;
-  color: #333;
+
+.stat-name{
+  display: inline-block;
+  width: 120px;
+  margin-right: 1rem;
+  font-size: 0.9rem;
+  color: rgba(6, 6, 6, 0.9);
 }
-.sval {
-  color: #6b6b6b;
-  font-weight: 700;
+
+
+.stat-value{
+  font-weight: bold;
+  min-width: 40px;
+  text-align: right;
 }
-.bar {
-  height: 18px;
-  background: #fff;
-  border-radius: 999px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+
+.stat-bar{
+  background: rgba(255, 255, 255, 0.2);
+
+  height: 10px;
+  border-radius: 5px;
+  margin-top: 0.5rem;
   overflow: hidden;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.04);
-}
-.fill {
-  height: 100%;
-  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: inset 0  2px 4px  rgba(0, 0, 0, 0.1)
 }
 
-.extra-card {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  padding: 12px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+
+.stat-fill{
+   height: 100%;
+  transition: width 0.3s ease, background 0.3s ease;
+  border-radius: 5px;
+  background-size: 200% 100% !important;
 }
 
-.footer {
-  margin-top: 18px;
+h2, h3, .stat-name, .stat-value {
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+  margin: 0.3rem 0;
+}
+
+.img-wrapper{
+   background: rgba(255, 255, 255, 0.1); 
+  border-radius: 20px;
+  padding: 1.5rem;
+  backdrop-filter: blur(8px); 
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  margin: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.main-image {
+  width: 230px;
+  height: 150px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.1));
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  display: block;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.main-image:hover {
+  transform: translateY(-10px);
+  filter: drop-shadow(0 20px 25px rgba(0, 0, 0, 0.2));
+}
+
+
+.tipos,
+.debilidades {
+  padding: 0.3rem; 
+}
+.tipos ul, 
+.debilidades ul{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); 
+  gap: 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.tipos li,.debilidades li{
+   display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  border-radius: 10px;
+  color: white;
+  text-shadow:  1px 1px 2px rgba(0, 0, 0, 0.3);
+  font-weight: bold;
+  text-transform: capitalize;
+  transition: all 0.3s ease;
+   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    padding: 0.3rem 0.5rem;
+  font-size: 0.8rem; 
+  min-height: 24px; 
+}
+.tipos li:hover,
+.debilidades li:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  width: 380px; 
+  flex-shrink: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  height: 650px;
+  gap: 1px;
+}
+
+
+
+.Pokemon-presentacion h2{
   text-align: center;
-  color: rgba(0, 0, 0, 0.45);
+  font-size: 1rem;
+  margin: 1rem 0;
+  color: white;
+
 }
 
-@media (max-width: 980px) {
-  .main-layout {
-    grid-template-columns: 1fr;
+.informacion-pokemon h2{
+  text-align: center;
+  font-size: 1rem;
+}
+.peso-altura{
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.7rem;
+   justify-content: center;
+  gap: 1rem;
+  padding: 0.8rem;
+ 
+ 
+  margin: 0.8rem 0;
+}
+
+.peso-altura h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  margin: 0;
+  min-width: 120px;
+  justify-content: center;
+ 
+}
+
+
+.lupa {
+     display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  margin: 0.5rem auto;
+  max-width: 450px;
+ 
+  background: transparent;
+  backdrop-filter: blur(0); 
+  box-shadow: none; 
+}
+#pokemonInput {
+ padding: 0.6rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  width: 160px;
+  transition: all 0.3s ease;
+  outline: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.boton, .boton-aleatorio {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.boton {
+  background: #ed6300;
+  color: white;
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+.boton-aleatorio {
+  background: #2196F3;
+  color: white;
+  box-shadow: 0 4px 8px rgba(76, 0, 198, 0.3);
+}
+.boton:hover {
+  background: #9bc200;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(76, 175, 80, 0.4);
+}
+.boton-aleatorio:hover {
+  background: #c1e51e;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(33, 150, 243, 0.4);
+}
+
+
+
+
+
+@media (max-width: 768px) {
+  .content-wrapper {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
   }
-  .left-card {
-    min-height: 420px;
+
+  .left-column,
+  .right-column {
+    width: 100%;
+    max-width: 380px;
+    height: auto;
+  }
+
+  .main-image {
+    width: 180px;
+    height: 180px;
+  }
+
+  .img-wrapper {
+    padding: 0.8rem;
+    margin: 0.5rem;
   }
 }
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0.5rem;
+  }
+
+  .lupa {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  #pokemonInput,
+  .boton,
+  .boton-aleatorio {
+    width: 100%;
+    max-width: 250px;
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  .left-column,
+  .right-column {
+    max-width: 300px;
+  }
+
+  .main-image {
+    width: 150px;
+    height: 150px;
+  }
+
+  .Pokemon-presentacion h2 {
+    font-size: 0.9rem;
+  }
+
+  .peso-altura h3 {
+    min-width: 100px;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.8rem;
+  }
+
+  .tipos ul,
+  .debilidades ul {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 350px) {
+  .left-column,
+  .right-column {
+    max-width: 280px;
+  }
+
+  .main-image {
+    width: 130px;
+    height: 130px;
+  }
+
+  .stat-name {
+    width: 90px;
+    font-size: 0.75rem;
+  }
+
+  .stat-value {
+    font-size: 0.75rem;
+  }
+
+  .tipos li,
+  .debilidades li {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+    min-height: 20px;
+  }
+
+  .peso-altura {
+    gap: 0.5rem;
+  }
+
+  .peso-altura h3 {
+    min-width: 90px;
+    font-size: 0.7rem;
+  }
+}
+
+
+.content-wrapper {
+  min-height: 0; 
+}
+
+.left-column {
+  height: auto; 
+}
+
+.right-column {
+  height: auto; 
+}
+
+
+.estadisticas {
+  height: auto;
+  margin-bottom: 1rem;
+}
+
+
+
+
+
+
+
+
+
 </style>
