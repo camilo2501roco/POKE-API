@@ -238,12 +238,17 @@ async function buscarAleatorio(){
   </div>
 </template>
 
-<style scoped>
+<style >
+
+body{
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+}
 
 .container {
   max-width: 1000px; 
   margin: 0 auto;
   padding: 1rem;
+ 
 }
 .content-wrapper{
   display: flex;
@@ -265,10 +270,14 @@ async function buscarAleatorio(){
 
 
 .estadisticas{
-    background: rgba(255, 255, 255, 0.95);
+  background: linear-gradient(
+    135deg,
+    rgba(79, 79, 80, 0.95),
+    rgba(86, 92, 108, 0.95)
+  );
   border-radius: 14px;
   padding: 12px;
-  box-shadow: 0 12px 30px rgba(19, 19, 19, 0.06);
+  box-shadow: 0 12px 30px rgba(131, 131, 131, 0.06);
 }
 
 
@@ -276,7 +285,7 @@ async function buscarAleatorio(){
   display: flex;
   flex-direction: column;
   gap: 1rem;
-    background: rgba(255, 255, 255, 0.95);
+    background: transparent;
 }
 
 .stat-item{
@@ -297,7 +306,7 @@ async function buscarAleatorio(){
   width: 120px;
   margin-right: 1rem;
   font-size: 0.9rem;
-  color: rgba(6, 6, 6, 0.9);
+ color: rgba(255, 255, 255, 0.9);
 }
 
 
@@ -333,7 +342,7 @@ h2, h3, .stat-name, .stat-value {
 .img-wrapper{
    background: rgba(255, 255, 255, 0.1); 
   border-radius: 20px;
-  padding: 1.5rem;
+  padding: 0.5rem;
   backdrop-filter: blur(8px); 
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   margin: 1rem;
