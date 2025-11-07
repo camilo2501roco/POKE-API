@@ -140,6 +140,9 @@ async function buscarAleatorio(){
 <template>
   <div class="container">
     <header>
+       <div v-if="error" class="error-alert">
+        {{ error }}
+      </div>
       <div class="lupa">
         <label for="pokemonInput">
           <input v-model="pokemonID" type="text" id="pokemonInput" />
@@ -152,6 +155,9 @@ async function buscarAleatorio(){
         </button>
       </div>
     </header>
+     <div v-if="cargando" class="loader">
+      Cargando...
+    </div>
 
     <main class="main" v-if="pokemonData">
       <div class="content-wrapper">
@@ -166,7 +172,7 @@ async function buscarAleatorio(){
           <section class="Pokemon-presentacion">
             <div class="img-wrapper">
               <img
-                :src="pokemonData?.sprites?.other?.['official-artwork']?.front_default"
+                :src="pokemonData.sprites?.other?.['official-artwork']?.front_default"
                 :alt="pokemonData?.name || 'pokemon'"
                 class="main-image"
                 v-if="pokemonData"
@@ -514,10 +520,35 @@ h2, h3, .stat-name, .stat-value {
   box-shadow: 0 6px 12px rgba(33, 150, 243, 0.4);
 }
 
+.error-alert {
+  background-color: rgba(255, 82, 82, 0.9);
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem auto;
+  max-width: 450px;
+  text-align: center;
+  font-size: 0.9rem;
+  animation: fadeIn 0.3s ease;
+  backdrop-filter: blur(5px);
+  box-shadow: 0 4px 12px rgba(255, 82, 82, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
 
 
-
-
+.loader {
+  text-align: center;
+  padding: 2rem;
+  color: white;
+  font-size: 1.2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
 @media (max-width: 768px) {
   .content-wrapper {
     flex-direction: column;
